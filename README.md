@@ -1,3 +1,3 @@
-# 👮🏻‍♂️ Polizei
+# 🚔 Polizei 🚔
 
-Polizei [[ˌpo.liˈt͡saɪ̯]](https://www.youtube.com/watch?v=vO3h33x5xfM) is a tool built on top of [Open Policy Agent (OPA)](https://www.openpolicyagent.org/) and [Conftest](https://www.conftest.dev/). It is designed to help maintain consistency and quality across a large number of repositories by enforcing a set of predefined policies.
+🕵️‍♂️ Polizei [ˌpo.liˈt͡saɪ̯] is a powerful tool 💪 built on top of the amazing Open Policy Agent (OPA) and Conftest. It's main goal is to help you maintain consistency and quality 💯 across a large number of repositories by enforcing a set of predefined policies. 🗝️ With Polizei you can ensure that your codebase is always up to standard and ready for production.🚀

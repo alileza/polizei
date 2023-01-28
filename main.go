@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -20,24 +21,34 @@ func main() {
 		&cli.Command{
 			Name:    "get",
 			Aliases: []string{"g"},
-			Usage:   "get helm charts",
+			Usage:   "Get helm charts from github orgs",
 			Flags: []cli.Flag{
 				&cli.StringFlag{
-					Name:    "gh-access-token",
-					Aliases: []string{"gh-token", "t"},
-					Usage:   "Github Access Token",
-					EnvVars: []string{"GH_ACCESS_TOKEN"},
+					Name:        "access-token",
+					Aliases:     []string{"token", "t"},
+					Usage:       "Github Access Token",
+					DefaultText: "Retrieve and obtain helm charts, which are package managers for Kubernetes, from specific Github organizations. This process involves searching through the specified Github organization's repositories and locating the charts that are available for use in a Kubernetes cluster. Once the charts have been identified, they can be easily downloaded and implemented within the cluster for deployment and management of the various applications and services.",
+					Required:    true,
+					EnvVars:     []string{"GH_ACCESS_TOKEN"},
+				},
+				&cli.StringFlag{
+					Name:     "orgs",
+					Aliases:  []string{"o"},
+					Usage:    "Github Organization",
+					Required: true,
+					EnvVars:  []string{"GH_ORGS"},
 				},
 			},
 			Action: func(ctx *cli.Context) error {
-				ts := oauth2.StaticTokenSource(
-					&oauth2.Token{AccessToken: ctx.String("gh-access-token")},
-				)
-				tc := oauth2.NewClient(ctx.Context, ts)
+				client := &GithubClient{
+					github.NewClient(
+						oauth2.NewClient(ctx.Context, oauth2.StaticTokenSource(
+							&oauth2.Token{AccessToken: ctx.String("gh-access-token")},
+						)),
+					),
+				}
 
-				client := &GithubClient{github.NewClient(tc)}
-
-				err := fetchCharts(context.Background(), client)
+				err := client.DownloadHelmChartsFromOrgs(ctx.Context, ctx.String("orgs"))
 				if err != nil {
 					return err
 				}
@@ -45,15 +56,16 @@ func main() {
 			},
 		},
 		&cli.Command{
-			Name:  "verify",
-			Usage: "Verify charts",
+			Name:    "verify",
+			Usage:   "Verify charts",
+			Aliases: []string{"v"},
 			Action: func(ctx *cli.Context) error {
 				files, err := os.ReadDir("./out")
 				if err != nil {
 					log.Fatal(err)
 				}
 				for _, file := range files {
-					out, err := render("./out/"+file.Name()+"/chart", "values-staging.yaml")
+					out, err := render("./out/"+file.Name()+"/chart", "./out/"+file.Name()+"/chart/values-staging.yaml")
 					if err != nil {
 						return fmt.Errorf("render: %w", err)
 					}
@@ -77,25 +89,21 @@ func main() {
 }
 
 func testChart(ctx context.Context, chart string) (string, error) {
-	cmd := exec.Command("conftest", "test", "--no-fail", chart)
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return "", err
-	}
-	return string(output), nil
+	cmd := exec.Command("conftest", "test", chart)
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &out
+	cmd.Run()
+	return out.String(), nil
 }
 
-func fetchCharts(ctx context.Context, client *GithubClient) error {
-	repos, err := client.GetRepositories(ctx, "SadaPay")
+func (gh *GithubClient) DownloadHelmChartsFromOrgs(ctx context.Context, orgs string) error {
+	repos, err := gh.GetRepositories(ctx, orgs)
 	if err != nil {
 		return err
 	}
 
 	for _, repo := range repos {
-		// if !strings.Contains(*repo.Name, "") {
-		// 	continue
-		// }
-
 		_, err := os.Stat("./out/" + repo.GetName())
 		if err == nil {
 			continue
@@ -104,7 +112,7 @@ func fetchCharts(ctx context.Context, client *GithubClient) error {
 			continue
 		}
 
-		if err := client.DownloadDir(ctx, repo, "chart", "./out/"+repo.GetName()); err != nil {
+		if err := gh.DownloadDir(ctx, repo, "chart", "./out/"+repo.GetName()); err != nil {
 			os.RemoveAll("./out/" + repo.GetName())
 			fmt.Println(err)
 			continue
@@ -196,7 +204,7 @@ func (gh *GithubClient) GetRepositories(ctx context.Context, orgName string) ([]
 }
 
 func render(path string, valueFile string) ([]byte, error) {
-	cmd := exec.Command("helm", "template", "-f", path+"/"+valueFile, path)
+	cmd := exec.Command("helm", "template", "-f", valueFile, path)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return nil, err
