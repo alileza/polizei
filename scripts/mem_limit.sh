@@ -56,10 +56,8 @@ do
 done
 
 # Convert total memory limit and request from Ki to Mi and print them
-total_memory_limit=$(echo "$total_memory_limit / 1000" | bc)
-total_memory_request=$(echo "$total_memory_request / 1000" | bc)
-printf "Total CPU request: %s\n" "${total_cpu_request:-No request}"
-printf "Total CPU limit: %s\n" "${total_cpu_limit:-No limit}"
-printf "Total memory request: %sMi\n" "${total_memory_request:-No request}"
-printf "Total memory limit: %sMi\n" "${total_memory_limit:-No limit}"
+total_memory_request=$(echo "$total_memory_request / 1000000" | bc)
+total_cpu_request=$(echo "$total_cpu_request / 1000" | bc)
+printf "Total CPU request: %sMi\n" "${total_cpu_request:-No request}"
+printf "Total memory request: %sGi\n" "${total_memory_request:-No request}"
 
