@@ -12,10 +12,9 @@ USAGE:
    polizei [global options] command [command options] [arguments...]
 
 COMMANDS:
-   get, g     Get helm charts from github orgs
-   verify, v  Verify charts
-   help, h    Shows a list of commands or help for one command
+   chart, c  List repository names that contain a 'chart' directory in their root
+   get, g    Get helm charts from github orgs
+   help, h   Shows a list of commands or help for one command
 
 GLOBAL OPTIONS:
-   --help, -h  show help
 ```
